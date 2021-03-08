@@ -1,0 +1,81 @@
+$ yasm -f elf64 -DYASM -D__x86_64__ -DPIC libmini64.asm -o libmini64.o
+$ gcc -c -g -Wall -fno-stack-protector -fPIC -nostdlib libmini.c
+$ ld -shared -o libmini.so libmini64.o libmini.o
+$ yasm -f elf64 -DYASM -D__x86_64__ -DPIC start.asm -o start.o
+$ gcc -c -g -Wall -fno-stack-protector -nostdlib -I. -I.. -DUSEMINI test.c
+$ ld -m elf_x86_64 --dynamic-linker /lib64/ld-linux-x86-64.so.2 -o test test.o start.o -L. -L.. -lmini
+
+
+$ make alarm1
+gcc -c -g -Wall -fno-stack-protector -nostdlib -I. -I.. -DUSEMINI alarm1.c
+ld -m elf_x86_64 --dynamic-linker /lib64/ld-linux-x86-64.so.2 -o alarm1 alarm1.o start.o -L. -L.. -lmini
+rm alarm1.o
+$ LD_LIBRARY_PATH=. ./alarm1
+(3 seconds later ...)
+Alarm clock
+
+
+
+$ make alarm2
+gcc -c -g -Wall -fno-stack-protector -nostdlib -I. -I.. -DUSEMINI alarm2.c
+ld -m elf_x86_64 --dynamic-linker /lib64/ld-linux-x86-64.so.2 -o alarm2 alarm2.o start.o -L. -L.. -lmini
+rm alarm2.o
+$ LD_LIBRARY_PATH=. ./alarm2
+(5 seconds later ...)
+sigalrm is pending.
+
+
+
+$ make alarm3
+gcc -c -g -Wall -fno-stack-protector -nostdlib -I. -I.. -DUSEMINI alarm3.c
+ld -m elf_x86_64 --dynamic-linker /lib64/ld-linux-x86-64.so.3 -o alarm3 alarm3.o start.o -L. -L.. -lmini
+rm alarm3.o
+$ LD_LIBRARY_PATH=. ./alarm3
+^Csigalrm is pending.
+
+
+$ make jmp1
+gcc -o jmp1.o -c -g -Wall -fno-stack-protector -nostdlib -I. -I.. -DUSEMINI jmp1.c
+ld -m elf_x86_64 --dynamic-linker /lib64/ld-linux-x86-64.so.2 -o jmp1 jmp1.o start.o -L. -L.. -lmini
+rm jmp1.o
+$ LD_LIBRARY_PATH=. ./jmp1
+This is function a().
+This is function b().
+This is function c().
+This is function d().
+This is function e().
+This is function f().
+This is function g().
+This is function h().
+This is function i().
+This is function j().
+$
+
+
+setjump:
+	mov	eax, [esp+4]
+	mov	[eax], ebx
+	mov [eax+4], esi 
+	mov [eax+8], edi
+	mov [eax+12], ebp
+	lea ecx, [esp+4]
+	mov [eax+16], ecx
+	mov ecx, [esp]
+	mov [eax+20], ecx
+	xor eax, eax 
+	ret
+longjmp:
+	mov edx, [esp+4]
+	mov eax, [esp+8]
+	test eax, eax
+	jnz loc
+	inc eax
+loc:
+	mov ebx, [edx]
+	mov esi, [edx+4]
+	mov edi, [edx+8]
+	mov ebp, [edx+12] 
+	mov ecx, [edx+16] 
+	mov esp, ecx
+	mov ecx, [edx+20]
+	jmp ecx
